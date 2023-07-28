@@ -1,7 +1,24 @@
 global sampling_rate
 sampling_rate = 70
+global labels
+labels = ["Start", "End", "Origin", "Activity", "pred"]
+global activities
+activities = ["nothing", "taking meds"]
+global _acts
+_acts = ["taking meds"]
 
-global features_header    
+global cv
+cv = 10
+
+global out_cols
+out_cols = labels + activities
+out_cols += ["pred_" + str(j) for j in range(cv)]
+
+for act in activities:
+    out_cols += [act + "_" + str(j) for j in range(cv)]
+
+
+global features_header
 features_header = ['Avg Jerk Acc Right X',
                    'Avg Jerk Acc Right Y',
                    'Avg Jerk Acc Right Z',
