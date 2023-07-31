@@ -1,14 +1,12 @@
 import os
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from sklearn.model_selection import StratifiedKFold
-from sklearn import metrics
-from sklearn.tree import DecisionTreeClassifier as DT
 
-from controlled_bagging import ControlledBagging
-import settings
 import utils
+import settings
+from training import training
+from controlled_bagging import ControlledBagging
+from secondary_model import secondary_model
 
 
 features = settings.features_header[:-4]  # last columns are Start, End, Origin, Activity
@@ -34,34 +32,7 @@ for f in files:
     training_df = training_df.sort_values(by=["Start"])
     eval_df = eval_df.sort_values(by=["End"])
 
-
-models = []
-
-skf = StratifiedKFold(n_splits=settings.cv)
-avg_f1 = []
-fold = 0
-for train_index, test_index in tqdm(skf.split(training_df[features], training_df["Activity"])):
-    train_df = training_df.iloc[train_index, :].copy(deep=True)
-    test_df = training_df.iloc[test_index, :].copy(deep=True)
-
-    clf = ControlledBagging(_clf=DT(min_samples_leaf=2, criterion="entropy", random_state=0), _skew=19, _k=100, _train_size=1.0, _feats=features)
-
-    train_df = clf.train(train_df, verbose=False)
-    test_df = clf.predict(test_df, verbose=False)
-
-    # Update results
-    models.append(clf)
-    training_results = clf.predict(training_df, verbose=False)
-    eval_results = clf.predict(eval_df, verbose=False)
-    training_df["pred_" + str(fold)] = training_results["pred"].values
-    eval_df["pred_" + str(fold)] = eval_results["pred"].values
-    for act in settings.activities:
-        training_df[act + "_" + str(fold)] = training_results[act].values
-        eval_df[act + "_" + str(fold)] = eval_results[act].values
-
-    avg_f1.append(metrics.f1_score(y_true=test_df["Activity"], y_pred=test_df["pred"], average="macro"))
-    fold += 1
-print("Avg. F1:", np.mean(avg_f1), avg_f1)
+training_df, eval_df = training(training_df, training_df, eval_df)
 
 folder = "bagging_results_dependent"
 filebase = "cv10_dt_skew19_k100_v2.csv"
@@ -69,8 +40,8 @@ filebase = "cv10_dt_skew19_k100_v2.csv"
 train_file = os.path.join(folder, "dependent_train_" + filebase)
 test_file = os.path.join(folder, "dependent_test_" + filebase)
 
-utils.evaluate_model(models, training_df, folder, train_file)
-utils.evaluate_model(models, eval_df, folder, test_file)
+utils.evaluate_model(training_df, folder, "dependent_train_" + filebase)
+utils.evaluate_model(eval_df, folder, "dependent_test_" + filebase)
 
 # Print out results
 pred_df = pd.read_csv(train_file)
@@ -78,5 +49,10 @@ _pred_df = pd.read_csv(test_file)
 
 for user in users:
     print(user)
-    subset = _pred_df.loc[_pred_df["origin"] == user]
+    subset = _pred_df.loc[_pred_df["Origin"] == user]
     utils.print_results(subset)
+
+print('')
+print('Secondary Model')
+print('')
+secondary_model(users, folder, 'SVM')

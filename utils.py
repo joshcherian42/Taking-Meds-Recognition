@@ -22,6 +22,7 @@ def print_results(pred_df):
     cm = (cm * 100).astype(int)
     print("Normalized Confusion Matrix")
     print(cm)
+    print('')
 
 
 def read_features(file):
@@ -38,13 +39,16 @@ def read_features(file):
     return df
 
 
-def evaluate_model(_model, _df, _folder, _filename):
+def evaluate_model(_df, _folder, _filename, out_cols=settings.out_cols, adaptive=False):
     # Determine final result
     for act in settings.activities:
-        _df[act] = _df[[act + "_" + str(j) for j in range(settings.cv)]].mean(axis=1)
+        if not adaptive:
+            _df[act] = _df[[act + "_" + str(j) for j in range(settings.cv)]].mean(axis=1)
+        else:
+            _df[act] = _df[["b_" + act + "_" + str(j) for j in range(settings.cv)] + ["s_" + act + "_" + str(j) for j in range(settings.cv)]].mean(axis=1)
     _df["pred"] = _df[settings.activities].idxmax(axis=1).values
 
     if not os.path.exists(_folder):
         os.makedirs(_folder)
 
-    _df[settings.out_cols].to_csv(os.path.join(_folder, _filename), index=False)
+    _df[out_cols].to_csv(os.path.join(_folder, _filename), index=False)
