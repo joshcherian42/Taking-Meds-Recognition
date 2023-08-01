@@ -76,4 +76,4 @@ for user in users:
 print('')
 print('Secondary Model')
 print('')
-secondary_model(users, folder, 'SVM')
+secondary_model(users, folder_dir, 'SVM', out_cols=out_cols, prefix="s_")

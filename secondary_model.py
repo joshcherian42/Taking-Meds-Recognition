@@ -62,9 +62,12 @@ def get_stats(train_df, feats):
     return means, stdevs, ranks
 
 
-def secondary_model(users, folder, model_type):
-    feats = [x for x in settings.out_cols if x not in settings.labels]
+def secondary_model(users, folder, model_type, out_cols=settings.out_cols, prefix=''):
+    feats = [x for x in out_cols if x not in settings.labels]
     feats = [x for x in feats if "pred" not in x and '_' in x]
+    if prefix != '':
+        feats = [x for x in feats if x.startswith(prefix)]
+
     train_pred_files = [os.path.join(folder, x) for x in os.listdir(folder) if "train" in x]
     test_pred_files = [os.path.join(folder, x) for x in os.listdir(folder) if "test" in x]
 
@@ -136,6 +139,9 @@ def secondary_model(users, folder, model_type):
                             val *= row[ele]
 
                     data[ele].append(val)
+        else:
+            print('Model not found')
+            exit()
 
             df = pd.DataFrame.from_dict(data)
             df["pred"] = df[settings.activities].idxmax(axis=1)
